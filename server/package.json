@@ -8,16 +8,19 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "migrate": "npx sequelize-cli db:migrate --config config/config.cjs",
+    "mcp": "tsx mcp/server.ts",
     "migrate:create": "npx sequelize-cli migration:generate --config config/config.cjs"
   },
   "dependencies": {
     "@google/genai": "^1.41.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "path": "^0.12.7",
     "pdf-parse": "^2.4.5",
     "pg": "^8.12.0",
-    "sequelize": "^6.37.6"
+    "sequelize": "^6.37.6",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

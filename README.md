@@ -1,166 +1,330 @@
-# Running the project
+# Lev Boots – RAG + MCP System
 
-- Ensure `concurrently` is installed (`npm install concurrently --save-dev`)
-- Run `npm i`
-- Create a `.env` file inside your `/server` directory with your `DATABASE_URL`
-  connection string
-- Run `npm run dev` in the *root* directory - this runs the front and backend concurrently with hot module
-  and auto server reload
-- See the UI at [http://localhost:5173/](http://localhost:5173/)
+A full Retrieval-Augmented Generation (RAG) system integrated with the Model Context Protocol (MCP).
 
-# Exercise: Lev-Boots RAG System
+This project combines:
 
-## Overview
-
-Lev-Boots are a new invention that allow the wearer to levitate and hover
-around. There are several resources about this new technology, its development,
-and its applications.
-
-Your task is to implement a Retrieval-Augmented Generation (RAG) system that
-allows a user to ask and learn about these new boots.
-
-The UI is already set up for you: you type a question, press enter, and it sends
-it to the backend. Your task is to implement the entire RAG system on the
-backend: from loading and embedding the resources, to retrieving the knowledge
-and generating an answer.
-
-Your entry point is in `ragService.ts`
+- Google Gemini (Embeddings + LLM)
+- PostgreSQL + pgvector
+- Slack API ingestion (pagination + rate limiting)
+- PDF ingestion
+- External article ingestion
+- MCP Server exposing AI tools
+- MCP Inspector testing interface
 
 ---
 
-## Setup
+# What This Project Does
 
-### Database
-You will need your own postgres database for this project. If you don't have one set up locally, I **highly recommend** using [supabase](https://supabase.com/) - it takes 90 seconds to set up and get the credentials.
+This system allows you to:
 
-### Environment Variables
+1. Ingest knowledge from:
+   - Markdown articles
+   - Local PDFs
+   - Slack channels (mock API)
 
-Create a `.env` file in the project root with DATABASE_URL and GEMINI_API_KEY
-(or your preferred LLM)
+2. Convert all data into:
+   - 768-dimensional embeddings (Gemini)
 
-- The database must be **Postgres with pgvector** (local or Supabase)
-- Migrations run automatically when you start the server (including enabling the
-  pg vector) – no manual step required aside from creating the DB
+3. Store them in:
+   - PostgreSQL using pgvector
 
-### Data Sources
+4. Ask natural language questions:
+   - Retrieve most relevant chunks
+   - Generate contextual answers using Gemini
+   - Return cleaned, concise responses
 
-When you run your server for the first time, it will automatically create a
-`knowledge_base` table for you (assuming your connection string to your DB is
-valid). You should familiarize yourself with the model in
-`models/KnowledgeBase.ts`
+5. Expose everything through:
+   - MCP tools for AI agent integration
 
-_Note_: This table is fine for this project, but in reality you would likely
-want to split into multiple tables that are joined (e.g one for the chunks, one
-for the embeddings). For simplicity, we have everything in one table
+---
 
-Your first goal should be to populate your `knowledge_base` table with the
-following data:
+# Architecture Overview
 
-- **3 PDFs**
-  - All the PDFs are in the `/knowledge_pdfs` directory; read directly from
-    there:
-    - `OpEd - A Revolution at Our Feet.pdf`
-    - `Research Paper - Gravitational Reversal Physics.pdf`
-    - `White Paper - The Development of Localized Gravity Reversal Technology.pdf`
-  - You can `npm install pdf-parse` (see
-    [here](https://www.npmjs.com/package/pdf-parse)) to read the PDFs easily
-- **5 articles**
-  - All the articles are accessible in markdown format via this endpoint:
-    `https://gist.githubusercontent.com/JonaCodes/394d01021d1be03c9fe98cd9696f5cf3/raw/article-X_ARTICLE_ID.md`
-  - You'll have to replace X with the numbers 1-5, and ARTICLE_ID with the
-    following IDs:
-    `[military-deployment-report, urban-commuting, hover-polo, warehousing, consumer-safety]`
-- **Slack API** (simulated API with pagination + rate limiting)
-  - This API limits how much data it returns per query, so you will have to
-    paginate through
-  - There are three different slack channels
-  - Example access:
-    - `https://lev-boots-slack-api.jona-581.workers.dev/?channel=lab-notes&page=1`
-    - `https://lev-boots-slack-api.jona-581.workers.dev/?channel=engineering&page=2`
-    - `https://lev-boots-slack-api.jona-581.workers.dev/?channel=offtopic&page=3`
-
-### LLM via API
-
-You will also need API access to an LLM. You can use any you like, but if you
-want something for free (with rate limiting), you can use Google's Gemini
-
-- Here is a simple guide to setting it up:
-  https://ai.google.dev/gemini-api/docs/quickstart#javascript
-- You will need an API key which you can get for free here:
-  https://aistudio.google.com/app/apikey?
-  - Press the `Create API Key` button on the top right
-- **Note** as per the Gemini documentation, you can reduce token usage (hence
-  increase your rate limit) by disabling thinking. For this project, it's safe
-  to turn thinking off.
-  - To turn thinking off, add the following to your API request:
+## RAG Flow
 
 ```
-    config: {
-      thinkingConfig: {
-        thinkingBudget: 0, // Disables thinking
-      },
-    }
+User Question
+      ↓
+Embed Question (Gemini Embeddings)
+      ↓
+Vector Similarity Search (pgvector)
+      ↓
+Retrieve Top-K Chunks
+      ↓
+Build Context
+      ↓
+LLM Completion (Gemini Flash)
+      ↓
+Clean Final Answer
+```
+
+## MCP Flow
+
+```
+MCP Inspector / Claude
+      ↓
+rag_search tool
+      ↓
+ask()
+      ↓
+RAG Pipeline
+      ↓
+Answer Returned
 ```
 
 ---
 
-## Requirements
+# Project Structure
 
-Ultimately, you need to implement the two functions below
+```
+rag-lev-boots-project/
+├─ public/
+│ ├─ src/
+│ ├─ index.html
+│ ├─ vite.config.* (if exists)
+│ └─ package.json
+│
+├─ server/
+│ ├─ config/
+│ │ ├─ config.cjs
+│ │ ├─ constants.ts
+│ │ └─ database.ts
+│ │
+│ ├─ controllers/
+│ │ └─ (API controllers)
+│ │
+│ ├─ routes/
+│ │ └─ ragRoutes.ts
+│ │
+│ ├─ services/
+│ │ └─ ragService.ts
+│ │
+│ ├─ utils/
+│ │ ├─ pdfLoader.ts
+│ │ └─ checkPdf.ts
+│ │
+│ ├─ mcp/
+│ │ ├─ server.ts
+│ │ └─ tools/
+│ │ ├─ rag_search.ts
+│ │ ├─ list_knowledge_sources.ts
+│ │ └─ read_source.ts
+│ │
+│ ├─ knowledge_pdfs/
+│ │ └─ *.pdf
+│ │
+│ ├─ migrations/
+│ ├─ models/
+│ ├─ server.ts
+│ ├─ package.json
+│ ├─ tsconfig.json
+│ ├─ .env
+│ ├─ .sequelizerc
+│ ├─ eslint.config.js
+│ └─ prettierc / prettier config (if exists)
+│
+├─ package.json
+├─ package-lock.json
+├─ README.md
+└─ tsconfig.json
+```
 
-#### `loadAllData`
+---
+
+# Setup
+
+## Install Dependencies
+
+From project root:
+
+```bash
+npm install
+```
+
+If needed:
+
+```bash
+npm install concurrently --save-dev
+```
+
+---
+
+## Environment Variables
+
+Create a `.env` file inside the `/server` directory:
+
+```env
+GEMINI_API_KEY=your_gemini_key
+DATABASE_URL=your_postgres_connection_string
+```
+
+You can obtain a free Gemini API key here:
+
+- https://aistudio.google.com/app/apikey
+- https://ai.google.dev/gemini-api/docs/quickstart#javascript
+
+---
+
+# Database Requirements
+
+- PostgreSQL
+- pgvector extension enabled
+- `knowledge_base` table created via migrations
+
+### Embedding Configuration
+
+You must choose ONE embedding column and stick with it:
+
+- `embeddings_768`
+- `embeddings_1536`
+
+This project uses:
+
+- Model: `gemini-embedding-001`
+- Dimension: `768`
+- Column: `embeddings_768`
+
+The embedding dimension MUST match the DB column.
+
+---
+
+# Data Ingestion
+
+You must implement:
+
+## `loadAllData()`
+
+Responsibilities:
 
 - Fetch all sources
-- Chunk content into manageable pieces (400 words)
-- Embed each chunks
-  ([Gemini embeddings](https://ai.google.dev/gemini-api/docs/embeddings) or
-  another embedding model)
-- Store chunks + embeddings into the `knowledge_base` table
+- Chunk content into ~400-word pieces
+- Embed each chunk
+- Store chunks + embeddings into `knowledge_base`
 
-<span style="color:#fa5252">**IMPORTANT NOTE** on embeddings</span>
+Sources include:
 
-- The project already setup the `knowledge_base` table for you
-- This table includes one of two columns in which you can store your embeddings:
-  - `embeddings_768`
-  - `embeddings_1536`
-- These numbers indicate the embedding dimensions (i.e how long the embeddings
-  array is, i.e how many parameters in has)
-- You must choose _one_ and stick with it for the entire project (either 768
-  _or_ 1536)
-- The reason the project offers both is because different LLMs offer different
-  defaults, though you can customize the dimension output in your embedding
-  request
-- In theory, more embeddings = more precision (but slower speed with higher
-  costs), in practice, smaller embeddings can be fine for non-complex tasks (and
-  are faster + cheaper)
+- 5 external Markdown articles
+- Local PDFs (`server/knowledge_pdfs`)
+- Slack channels:
+  - lab-notes
+  - engineering
+  - offtopic
 
-<span style="color:#fa5252">**END of IMPORTANT NOTE** on embeddings</span>
+Slack ingestion supports:
+- Pagination
+- Rate limiting (429 retry handling)
+- Duplicate prevention
 
-#### `ask(userQuestion)`
+---
 
-- Embed (you must use the same embedding model) the question
-- Run a similarity search on the DB
-- Construct a prompt using the retrieved chunks
-- Ask the LLM to answer the user question **based only on retrieved content**
-- Return the answer to the UI
+# Question Answering
 
-## Notes
+## `ask(userQuestion)`
 
-1. I recommend you split your work to separate files - one (likely more) for
-   loading, chunking, embedding, and storing the data, and another for answering
-   the question
+Responsibilities:
 
-2. Since there is quite a lot of data to embed, you will be hitting the gemini
-   API quite a lot. To avoid hitting rate limits, it's probably a good idea to
-   start with something small, make sure it works, and avoid re-sending already
-   embedded data so you can save tokens
+1. Embed the question (same embedding model)
+2. Run similarity search using pgvector:
 
-3. This is a big project, but it's 100% feasible. You've got this =]
+```sql
+ORDER BY embeddings_768 <-> :qVec
+LIMIT 8
+```
 
-## Result
+3. Construct context from retrieved chunks
+4. Generate answer using Gemini Flash
+5. Enforce context-only answering
+6. Return cleaned response
 
-**Answering a question correctly**
-<img width="990" height="427" alt="image" src="https://github.com/user-attachments/assets/cc8563ed-6d7c-4254-af83-e76ee18c8351" />
+The model is instructed to:
+- Use ONLY retrieved context
+- Avoid hallucinations
+- Return concise answers
 
-**Not hallucinating**
-<img width="988" height="418" alt="image" src="https://github.com/user-attachments/assets/939fc8d5-6cc4-402d-9b17-d050afc4876d" />
+---
+
+# Running the RAG UI
+
+From project root:
+
+```bash
+npm run dev
+```
+
+This runs frontend + backend concurrently.
+
+Open:
+
+```
+http://localhost:5173/
+```
+
+---
+
+# Running MCP Inspector
+
+Navigate to:
+
+```bash
+cd server
+```
+
+Then run:
+
+```bash
+npx @modelcontextprotocol/inspector \
+  -e GEMINI_API_KEY="PASTE_YOUR_KEY" \
+  -e DATABASE_URL="PASTE_YOUR_DB_URL" \
+  -- npx tsx mcp/server.ts
+```
+
+Steps:
+
+1. Open Inspector UI
+2. Click **Tools**
+3. Select `rag_search`
+4. Provide:
+
+```json
+{
+  "question": "What operational challenges were mentioned?"
+}
+```
+
+---
+
+# Troubleshooting
+
+### No Results Returned
+- Check embedding dimension matches DB column
+- Ensure `loadAllData()` ran successfully
+- Confirm embeddings are not NULL
+
+### Slack Ingestion Issues
+- Verify pagination loop
+- Confirm rate-limit retry logic
+
+### MCP Tool Not Working
+- Ensure environment variables are passed correctly
+- Confirm correct path to `mcp/server.ts`
+
+---
+
+# What This Project Demonstrates
+
+- End-to-end RAG architecture
+- Vector database integration
+- Embedding lifecycle management
+- Prompt engineering
+- API ingestion with resilience
+- MCP tool exposure
+- Clean modular backend design
+
+---
+
+# Final Notes
+
+This repository represents a production-style RAG system integrated with MCP tools for AI agent interoperability.
+
+Built with scalability, clarity, and real-world design considerations in mind.

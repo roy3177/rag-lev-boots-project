@@ -3,7 +3,12 @@ import fs from "fs";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse"); // CommonJS module loaded safely in ESM
+const pdfParseModule = require("pdf-parse");
+
+const pdfParse =
+  typeof pdfParseModule === "function"
+    ? pdfParseModule
+    : pdfParseModule.default;
 
 export async function loadPdfText(filePath: string): Promise<string> {
   const buffer = fs.readFileSync(filePath);

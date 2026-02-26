@@ -306,7 +306,7 @@ Steps:
 - Confirm rate-limit retry logic
 
 ### MCP Tool Not Working
-- Ensure environment variables are passed correctly
+- Ensure environment variables are passed correctly.
 - Confirm correct path to `mcp/server.ts`
 
 ---

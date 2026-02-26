@@ -6,7 +6,7 @@ This project combines:
 
 - Google Gemini (Embeddings + LLM)
 - PostgreSQL + pgvector
-- Slack API ingestion (pagination + rate limiting)
+- Slack API ingestion (pagination + rate limiting).
 - PDF ingestion
 - External article ingestion
 - MCP Server exposing AI tools

@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
-dotenv.config({ path: "./server/.env" });
+dotenv.config({ path: "../.env" });
 
-import sequelize from "./server/config/database";
+import sequelize from "../config/database";
 
 (async () => {
   const [rows] = await sequelize.query(`

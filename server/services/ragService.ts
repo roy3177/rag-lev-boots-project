@@ -65,7 +65,7 @@ async function upsertChunk(params: {
   const { source, sourceId, chunkIndex, chunkContent, embedding } = params;
 
   // Avoid re-inserting if exists (saves tokens/time)
-  const [existing] = await sequelize.query(
+  const [existing] = await sequelize.query<{ id: number }>(
     `
     SELECT id
     FROM knowledge_base
@@ -75,8 +75,7 @@ async function upsertChunk(params: {
     { replacements: { source, sourceId, chunkIndex } }
   );
 
-  // @ts-ignore - sequelize returns array-ish
-  if (existing?.length && existing[0]?.id) return;
+  if (existing.length > 0 && existing[0]?.id) return;
 
   // Insert with pgvector cast (assuming migrations created pgvector columns)
   await sequelize.query(
@@ -281,8 +280,7 @@ export const ask = async (userQuestion: string): Promise<string> => {
     { replacements: { qVec } }
   );
 
-  // @ts-ignore
-  const snippets: string[] = (rows || []).map((r: any) => r.chunk_content);
+  const snippets: string[] = (rows as Array<{ chunk_content: string }>).map((r) => r.chunk_content);
 
   const context = snippets
     .map((s, i) => `[#${i + 1}] ${s}`)

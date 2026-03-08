@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "migrate": "npx sequelize-cli db:migrate --config config/config.cjs",
     "mcp": "tsx mcp/server.ts",
-    "migrate:create": "npx sequelize-cli migration:generate --config config/config.cjs"
+    "migrate:create": "npx sequelize-cli migration:generate --config config/config.cjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@google/genai": "^1.41.0",
@@ -30,6 +31,7 @@
     "globals": "^15.14.0",
     "sequelize-cli": "^6.6.3",
     "tsx": "^4.6.0",
-    "typescript": "~5.7.2"
+    "typescript": "~5.7.2",
+    "vitest": "^2.0.0"
   }
 }
